@@ -147,4 +147,30 @@ describe('JSONRPCServer.provide', function () {
 
         expect(called.foo).not.toBe(true);
     });
+
+    it('marshals named arguments', function () {
+        var stream = new MockStream();
+        var server = new JSONRPCServer();
+        var called = false;
+
+        server.provide(function foo(bar, baz) {
+            expect(bar).toBe(void undefined);
+            expect(baz).toBe(23);
+            called = true;
+        });
+
+        server.listen(stream);
+        stream.foobar = true;
+        stream.emit('data', JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'foo',
+            params: {
+                baz: 23,
+                biz: 42
+            }
+        }));
+
+        expect(called).toBe(true);
+    });
 });
