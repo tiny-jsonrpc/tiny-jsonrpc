@@ -1,10 +1,10 @@
-var JSONRPCServer = require('../lib/tiny-jsonrpc');
+var StreamServer = require('../lib/tiny-jsonrpc').StreamServer;
 var MockStream = require('./util/mock-stream');
 
-describe('JSONRPCServer.provide', function () {
+describe('StreamServer.provide', function () {
     it('registers functions as JSON-RPC methods if named', function () {
         var stream = new MockStream();
-        var server = new JSONRPCServer();
+        var server = new StreamServer();
         var called = {};
 
         server.provide(function foo() { called.foo = true; });
@@ -38,7 +38,7 @@ describe('JSONRPCServer.provide', function () {
     });
 
     it('throws if passed an anonymous function', function () {
-        var server = new JSONRPCServer();
+        var server = new StreamServer();
 
         expect(function () { server.provide(function () { }) }).toThrow();
         expect(function () { server.provide(function foo() {}, function () { }) }).toThrow();
@@ -46,7 +46,7 @@ describe('JSONRPCServer.provide', function () {
 
     it('registers methods of objects as JSON-RPC methods', function () {
         var stream = new MockStream();
-        var server = new JSONRPCServer();
+        var server = new StreamServer();
         var called = {};
 
         server.provide({ foo: function () { called.foo = true; } });
@@ -91,7 +91,7 @@ describe('JSONRPCServer.provide', function () {
 
     it('allows functions and objects in the same call', function () {
         var stream = new MockStream();
-        var server = new JSONRPCServer();
+        var server = new StreamServer();
         var called = {};
 
         server.provide({
@@ -116,7 +116,7 @@ describe('JSONRPCServer.provide', function () {
     });
 
     it('throws when passed a duplicate name', function () {
-        var server = new JSONRPCServer();
+        var server = new StreamServer();
         function fn1() {};
         function fn2() {};
 
@@ -131,7 +131,7 @@ describe('JSONRPCServer.provide', function () {
 
     it('registers no methods if any cause it to throw', function () {
         var stream = new MockStream();
-        var server = new JSONRPCServer();
+        var server = new StreamServer();
         var called = {};
 
         try {
@@ -150,7 +150,7 @@ describe('JSONRPCServer.provide', function () {
 
     it('marshals named arguments', function () {
         var stream = new MockStream();
-        var server = new JSONRPCServer();
+        var server = new StreamServer();
         var called = false;
 
         server.provide(function foo(bar, baz) {

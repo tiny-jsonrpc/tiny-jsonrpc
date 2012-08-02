@@ -1,10 +1,10 @@
-var JSONRPCServer = require('../lib/tiny-jsonrpc');
+var StreamServer = require('../lib/tiny-jsonrpc').StreamServer;
 var EventEmitter = require('events').EventEmitter;
 
-describe('JSONRPCServer.listen', function () {
+describe('StreamServer.listen', function () {
     it('listens to a stream for data events', function () {
         var stream = new EventEmitter();
-        var server = new JSONRPCServer();
+        var server = new StreamServer();
 
         stream.write = jasmine.createSpy();
 
@@ -26,7 +26,7 @@ describe('JSONRPCServer.listen', function () {
 
     it('respects backoff signals when writing', function () {
         var stream = new EventEmitter();
-        var server = new JSONRPCServer();
+        var server = new StreamServer();
 
         stream.write = jasmine.createSpy().andReturn(false);
 
