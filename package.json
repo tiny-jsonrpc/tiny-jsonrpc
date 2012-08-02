@@ -1,0 +1,14 @@
+{
+    "name": "tiny-jsonrpc",
+    "version": "0.1.0",
+    "author": "Lon Ingram <lon@waterfallmobile.com>",
+    "description": "Stream-oriented JSON-RPC 2.0 server with no dependencies",
+
+    "main": "./lib/tiny-jsonrpc.js",
+
+    "devDependencies": {
+        "jasmine-node": "1.x.x"
+    },
+
+    "license": "MIT"
+}
