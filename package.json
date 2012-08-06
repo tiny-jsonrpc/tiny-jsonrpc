@@ -2,7 +2,7 @@
     "name": "tiny-jsonrpc",
     "version": "0.1.0",
     "author": "Lon Ingram <lon@waterfallmobile.com>",
-    "description": "Stream-oriented JSON-RPC 2.0 server with no dependencies",
+    "description": "JavaScript JSON-RPC 2.0 server with no runtime dependencies",
 
     "main": "./lib/tiny-jsonrpc.js",
 
