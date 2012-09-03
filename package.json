@@ -7,9 +7,11 @@
     "main": "./lib/tiny-jsonrpc.js",
 
     "devDependencies": {
+        "requirejs": "2.0.x",
         "mocha": "1.3.x",
         "expect.js": "0.1.x",
-        "sinon": "1.4.x"
+        "sinon": "1.4.x",
+        "http-server": "0.5.x"
     },
 
     "license": "MIT"

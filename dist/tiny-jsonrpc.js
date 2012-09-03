@@ -1,3 +1,68 @@
+
+;(function (root, factory) {
+    if (typeof exports === 'object') {
+        // Node. Does not work with strict CommonJS, but
+        // only CommonJS-like enviroments that support module.exports,
+        // like Node.
+        module.exports = factory();
+    } else if (typeof define === 'function' && define.amd) {
+        // AMD. Register as an anonymous module.
+        define('tiny-jsonrpc/util',[],factory);
+    } else {
+        // Browser globals
+        root.tinyJsonRpc = root.tinyJsonRpc || {};
+        root.tinyJsonRpc.util = factory();
+    }
+}(this, function () {
+    function defaults(a, b) {
+        for (var key in b) {
+            if (!a.hasOwnProperty(key)) {
+                a[key] = b[key];
+            }
+        }
+
+        return a;
+    }
+
+    function merge(a, b) {
+        for (var key in b) {
+            a[key] = b[key];
+        }
+
+        return a;
+    }
+
+    function clone(o) {
+        return defaults({}, o);
+    }
+
+    function toArray(x) {
+        return Array.prototype.slice.call(x);
+    }
+
+    function isNumber(x) { return typeof x === 'number'; }
+    function isString(x) { return typeof x === 'string'; }
+    function isFunction(x) { return typeof x === 'function'; }
+    function isArray(x) { return x instanceof Array; }
+    function isObject(x) { return typeof x === 'object'; }
+    function isNull(x) { return x === null; }
+    function isUndefined(x) { return x === void undefined; }
+
+    return {
+        defaults: defaults,
+        merge: merge,
+        clone: clone,
+        toArray: toArray,
+        isNumber: isNumber,
+        isString: isString,
+        isFunction: isFunction,
+        isArray: isArray,
+        isObject: isObject,
+        isNull: isNull,
+        isUndefined: isUndefined
+    };
+}));
+
 ;(function (root, factory) {
     if (typeof exports === 'object') {
         // Node. Does not work with strict CommonJS, but
@@ -6,7 +71,7 @@
         module.exports = factory(require('./util'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['./util'], factory);
+        define('tiny-jsonrpc/server',['./util'], factory);
     } else {
         // Browser globals
         root.tinyJsonRpc = root.tinyJsonRpc || {};
@@ -293,4 +358,94 @@
     };
 
     return Server;
+}));
+
+;(function (root, factory) {
+    if (typeof exports === 'object') {
+        // Node. Does not work with strict CommonJS, but
+        // only CommonJS-like enviroments that support module.exports,
+        // like Node.
+        module.exports = factory(require('./server'), require('./util'));
+    } else if (typeof define === 'function' && define.amd) {
+        // AMD. Register as an anonymous module.
+        define('tiny-jsonrpc/stream-server',['./server', './util'], factory);
+    } else {
+        // Browser globals
+        root.tinyJsonRpc = root.tinyJsonRpc || {};
+        root.tinyJsonRpc.StreamServer =
+            factory(tinyJsonRpc.Server, tinyJsonRpc.util);
+    }
+}(this, function (Server, util) {
+    function StreamServer(options) {
+        Server.apply(this, arguments);
+        this._streams = [];
+    }
+
+    StreamServer.prototype = new Server();
+    StreamServer.prototype.constructor = StreamServer;
+
+    StreamServer.prototype._write = function (stream, what) {
+        var success
+
+        if (stream.full) {
+            stream.buffer.push(what);
+        } else {
+            stream.full = !stream.stream.write(what);
+        }
+    };
+
+    StreamServer.prototype.listen = function () {
+        var args = util.toArray(arguments);
+
+        args.forEach(function (stream) {
+            var streamRecord = {
+                stream: stream,
+                buffer: []
+            };
+
+            streamRecord.onData = this._onData.bind(this, streamRecord);
+            stream.on('data', streamRecord.onData);
+
+            streamRecord.onDrain = this._onDrain.bind(this, streamRecord);
+            stream.on('drain', streamRecord.onDrain);
+
+            this._streams.push(streamRecord);
+        }, this);
+    };
+
+    StreamServer.prototype._onData = function (stream, request) {
+        var result = this.respond(request);
+
+        this._write(stream, result);
+    };
+
+    StreamServer.prototype._onDrain = function (stream, request) {
+        var buffer = stream.buffer.slice().reverse();
+
+        stream.full = false;
+        while (buffer.length > 0) {
+            this._write(stream, buffer.pop());
+        }
+    };
+
+    return StreamServer;
+}));
+
+;(function (factory) {
+    if (typeof exports === 'object') {
+        // Node. Does not work with strict CommonJS, but
+        // only CommonJS-like enviroments that support module.exports,
+        // like Node.
+        module.exports = factory(
+            require('./tiny-jsonrpc/server'),
+            require('./tiny-jsonrpc/stream-server'));
+    } else if (typeof define === 'function' && define.amd) {
+        // AMD. Register as an anonymous module.
+        define('tiny-jsonrpc',['./tiny-jsonrpc/server', './tiny-jsonrpc/stream-server'], factory);
+    }
+}(function (Server, StreamServer) {
+    return {
+        Server: Server,
+        StreamServer: StreamServer
+    };
 }));
