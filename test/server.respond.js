@@ -78,9 +78,9 @@ describe('Server.respond', function () {
             }
 
             delete request.id;
-            response = server.respond(JSON.stringify(request));
-            expect(response).to.be.an(Error);
-            expect(response.code).to.be(errors.INVALID_REQUEST);
+            response = JSON.parse(server.respond(JSON.stringify(request)));
+            expectValidError(response, null);
+            expect(response.error.code).to.be(errors.INVALID_REQUEST);
         });
 
         it('request.method is missing', function () {
@@ -97,9 +97,9 @@ describe('Server.respond', function () {
             expect(response.error.code).to.be(errors.INVALID_REQUEST);
 
             delete request.id;
-            response = server.respond(JSON.stringify(request));
-            expect(response).to.be.an(Error);
-            expect(response.code).to.be(errors.INVALID_REQUEST);
+            response = JSON.parse(server.respond(JSON.stringify(request)));
+            expectValidError(response, null);
+            expect(response.error.code).to.be(errors.INVALID_REQUEST);
         });
 
         it('request.method is not a string', function () {
@@ -121,12 +121,12 @@ describe('Server.respond', function () {
             }
 
             delete request.id;
-            response = server.respond(JSON.stringify(request));
-            expect(response).to.be.an(Error);
-            expect(response.code).to.be(errors.INVALID_REQUEST);
+            response = JSON.parse(server.respond(JSON.stringify(request)));
+            expectValidError(response, null);
+            expect(response.error.code).to.be(errors.INVALID_REQUEST);
         });
 
-        it('request.method is not provided', function () {
+        it('request.method is not provided by the server', function () {
             var server = new Server();
             var request = {
                 jsonrpc: '2.0',
@@ -189,9 +189,9 @@ describe('Server.respond', function () {
                 }
 
                 delete request.id;
-                response = server.respond(JSON.stringify(request));
-                expect(response).to.be.an(Error);
-                expect(response.code).to.be(errors.INVALID_REQUEST);
+                response = JSON.parse(server.respond(JSON.stringify(request)));
+                expectValidError(response, null);
+                expect(response.error.code).to.be(errors.INVALID_REQUEST);
             });
     });
 
@@ -444,5 +444,128 @@ describe('Server.respond', function () {
                 expect(response.data).to.eql(data);
                 expect(response.message).to.be(message);
            });
+    });
+
+    describe('upon a batch request', function () {
+        it('returns INVALID_REQUEST if the batch is empty', function () {
+            var server = new Server();
+            var request = [];
+
+            server.provide(function foo() { });
+            var response = JSON.parse(server.respond(JSON.stringify(request)));
+
+            expectValidError(response, null);
+            expect(response.error.code).to.be(errors.INVALID_REQUEST);
+        });
+
+        it('returns an array of responses', function () {
+            var server = new Server();
+            var request = [
+                1,
+                { 'foo': 'bar' },
+                { jsonrpc: 2, method: 'foo', id: 1 },
+                { jsonrpc: '2.0', id: 2 },
+                { jsonrpc: '2.0', method: 2, id: 3 },
+                { jsonrpc: '2.0', method: 'fiz', id: 4 },
+                { jsonrpc: '2.0', method: 'foo', id: [] },
+                { jsonrpc: '2.0', method: 'foo', id: 5, params: 23 },
+                { jsonrpc: '2.0', method: 'foo', id: 6 },
+                { jsonrpc: '2.0', method: 'foo', id: 7, params: [1, 2] },
+                {
+                    jsonrpc: '2.0', method: 'foo', id: 8,
+                    params: { one: 1, two: 2 }
+                },
+                { jsonrpc: '2.0', method: 'foo', id: 9, params: [-1] },
+                {
+                    jsonrpc: '2.0', method: 'foo', id: 10,
+                    params: [-1, true, 123]
+                },
+                {
+                    jsonrpc: '2.0', method: 'foo', id: 11,
+                    params: [-1, true, void undefined, { foo: 'bar' }]
+                }
+            ];
+
+            server.provide(function foo(one, two, three, four) {
+                var e;
+                if (one < 0) {
+                    if (two) {
+                        e = new Error('OHNOES');
+                        e.code = three;
+                        e.data = four;
+                    } else {
+                        e = 'OHNOES';
+                    }
+                    throw e;
+                }
+
+                if (one && two) {
+                    return one + two;
+                } else if (one) {
+                    return one;
+                } else {
+                    return null;
+                }
+            });
+            var response = JSON.parse(server.respond(JSON.stringify(request)));
+
+            // invalid requests
+            expectValidError(response[0], null);
+            expect(response[0].error.code).to.be(errors.INVALID_REQUEST);
+            expectValidError(response[1], null);
+            expect(response[0].error.code).to.be(errors.INVALID_REQUEST);
+
+            // bad version
+            expectValidError(response[2], 1);
+            expect(response[2].error.code).to.be(errors.INVALID_REQUEST);
+
+            // missing method
+            expectValidError(response[3], 2);
+            expect(response[3].error.code).to.be(errors.INVALID_REQUEST);
+
+            // invalid method
+            expectValidError(response[4], 3);
+            expect(response[4].error.code).to.be(errors.INVALID_REQUEST);
+
+            // unprovided method
+            expectValidError(response[5], 4);
+            expect(response[5].error.code).to.be(errors.METHOD_NOT_FOUND);
+
+            // invalid id
+            expectValidError(response[6], null);
+            expect(response[6].error.code).to.be(errors.INVALID_REQUEST);
+
+            // invalid params
+            expectValidError(response[7], 5);
+            expect(response[7].error.code).to.be(errors.INVALID_REQUEST);
+
+            // no params
+            expectValidResult(response[8], 6);
+            expect(response[8].result).to.be(null);
+
+            // positional params
+            expectValidResult(response[9], 7);
+            expect(response[9].result).to.be(3);
+
+            // named params
+            expectValidResult(response[10], 8);
+            expect(response[10].result).to.be(3);
+
+            // throws a string
+            expectValidError(response[11], 9);
+            expect(response[11].error.code).to.be(errors.INTERNAL_ERROR);
+            expect(response[11].error.message).to.be('OHNOES');
+
+            // throws an Error with code
+            expectValidError(response[12], 10);
+            expect(response[12].error.code).to.be(123);
+            expect(response[12].error.message).to.be('OHNOES');
+
+            // throws an Error with data
+            expectValidError(response[13], 11);
+            expect(response[13].error.code).to.be(errors.INTERNAL_ERROR);
+            expect(response[13].error.message).to.be('OHNOES');
+            expect(response[13].error.data).to.eql({ foo: 'bar' });
+        });
     });
 });
