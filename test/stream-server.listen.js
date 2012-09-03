@@ -1,6 +1,5 @@
 var StreamServer = require('../lib/tiny-jsonrpc').StreamServer;
 var EventEmitter = require('events').EventEmitter;
-var util = require('util');
 var expect = require('expect.js');
 var sinon = require('sinon');
 
