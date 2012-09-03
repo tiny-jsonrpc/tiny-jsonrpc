@@ -1,12 +1,15 @@
 var StreamServer = require('../lib/tiny-jsonrpc').StreamServer;
 var EventEmitter = require('events').EventEmitter;
+var util = require('util');
+var expect = require('expect.js');
+var sinon = require('sinon');
 
 describe('StreamServer.listen', function () {
     it('listens to a stream for data events', function () {
         var stream = new EventEmitter();
         var server = new StreamServer();
 
-        stream.write = jasmine.createSpy();
+        stream.write = sinon.spy();
 
         server.provide(function marco() { return 'polo'; });
         server.listen(stream);
@@ -16,8 +19,8 @@ describe('StreamServer.listen', function () {
             method: 'marco'
         }));
 
-        expect(stream.write).toHaveBeenCalled();
-        expect(stream.write.mostRecentCall.args[0]).toBe(JSON.stringify({
+        sinon.assert.calledOnce(stream.write);
+        sinon.assert.calledWith(stream.write, JSON.stringify({
             jsonrpc: '2.0',
             id: 1,
             result: 'polo'
@@ -28,7 +31,8 @@ describe('StreamServer.listen', function () {
         var stream = new EventEmitter();
         var server = new StreamServer();
 
-        stream.write = jasmine.createSpy().andReturn(false);
+        stream.write = sinon.stub();
+        stream.write.returns(false);
 
         server.provide(function marco() { return 'polo'; });
         server.listen(stream);
@@ -38,15 +42,15 @@ describe('StreamServer.listen', function () {
             method: 'marco'
         }));
 
-        expect(stream.write).toHaveBeenCalled();
-        expect(stream.write.mostRecentCall.args[0]).toBe(JSON.stringify({
+        sinon.assert.calledOnce(stream.write);
+        sinon.assert.calledWith(stream.write, JSON.stringify({
             jsonrpc: '2.0',
             id: 1,
             result: 'polo'
         }));
+
         stream.write.reset();
 
-        stream.foobar = true;
         stream.emit('data', JSON.stringify({
             jsonrpc: '2.0',
             id: 2,
@@ -59,24 +63,23 @@ describe('StreamServer.listen', function () {
             method: 'marco'
         }));
 
-        expect(stream.write).not.toHaveBeenCalled();
+        sinon.assert.notCalled(stream.write);
 
-        stream.write = jasmine.createSpy().andReturn(true);
+        stream.write.returns(true);
         stream.emit('drain');
 
-        expect(stream.write).toHaveBeenCalled();
-        expect(stream.write.callCount).toBe(2);
+        sinon.assert.calledTwice(stream.write);
 
-        expect(stream.write.argsForCall[0][0]).toBe(JSON.stringify({
+        expect(stream.write.firstCall.calledWith(JSON.stringify({
             jsonrpc: '2.0',
             id: 2,
             result: 'polo'
-        }));
+        }))).to.be(true);
 
-        expect(stream.write.argsForCall[1][0]).toBe(JSON.stringify({
+        expect(stream.write.secondCall.calledWith(JSON.stringify({
             jsonrpc: '2.0',
             id: 3,
             result: 'polo'
-        }));
+        }))).to.be(true);
     });
 });
