@@ -32,11 +32,16 @@ describe('Server.respond', function () {
     describe('returns an error when', function () {
         it('request is not valid JSON', function () {
             var server = new Server();
-            var requests = [{
+            var requests = [
+                void undefined,
+                {
                     id: 1,
                     method: 'foo'
                 },
+                [],
+                '[',
                 '{ foo:',
+                '{ foo }',
                 '{ foo: "bar" }'
             ];
             var response;
