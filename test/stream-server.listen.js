@@ -5,27 +5,34 @@ var expect = require('expect.js');
 var sinon = require('sinon');
 
 describe('StreamServer.listen', function () {
-    it('listens to a stream for data events', function () {
-        var stream = new EventEmitter();
-        var server = new StreamServer();
+    it('listens to a stream for data events, calls Server.respond, ' +
+           'and writes the results back to the stream',
+        function () {
+            var stream = new EventEmitter();
+            var server = new StreamServer();
+            var request = JSON.stringify({
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'marco'
+            });
 
-        stream.write = sinon.spy();
+            stream.write = sinon.spy();
+            sinon.spy(server, 'respond');
 
-        server.provide(function marco() { return 'polo'; });
-        server.listen(stream);
-        stream.emit('data', JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'marco'
-        }));
+            server.provide(function marco() { return 'polo'; });
+            server.listen(stream);
+            stream.emit('data', request);
 
-        sinon.assert.calledOnce(stream.write);
-        sinon.assert.calledWith(stream.write, JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            result: 'polo'
-        }));
-    });
+            sinon.assert.calledOnce(server.respond);
+            sinon.assert.calledWith(server.respond, request);
+
+            sinon.assert.calledOnce(stream.write);
+            sinon.assert.calledWith(stream.write, JSON.stringify({
+                jsonrpc: '2.0',
+                id: 1,
+                result: 'polo'
+            }));
+        });
 
     it('respects backoff signals when writing', function () {
         var stream = new EventEmitter();
