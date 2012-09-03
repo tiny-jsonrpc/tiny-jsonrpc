@@ -1,16 +1,13 @@
-var StreamServer = require('../lib/tiny-jsonrpc').StreamServer;
-var MockStream = require('./util/mock-stream');
+var Server = require('../lib/tiny-jsonrpc').Server;
 var expect = require('expect.js');
 
-describe('StreamServer.provide', function () {
+describe('Server.provide', function () {
     it('registers functions as JSON-RPC methods if named', function () {
-        var stream = new MockStream();
-        var server = new StreamServer();
+        var server = new Server();
         var called = {};
 
         server.provide(function foo() { called.foo = true; });
-        server.listen(stream);
-        stream.emit('data', JSON.stringify({
+        server.respond(JSON.stringify({
             jsonrpc: '2.0',
             id: 1,
             method: 'foo'
@@ -22,13 +19,13 @@ describe('StreamServer.provide', function () {
             function fiz() { called.fiz = true; },
             function frob() { called.frob = true; });
 
-        stream.emit('data', JSON.stringify({
+        server.respond(JSON.stringify({
             jsonrpc: '2.0',
             id: 2,
             method: 'fiz'
         }));
 
-        stream.emit('data', JSON.stringify({
+        server.respond(JSON.stringify({
             jsonrpc: '2.0',
             id: 3,
             method: 'frob'
@@ -39,20 +36,18 @@ describe('StreamServer.provide', function () {
     });
 
     it('throws if passed an anonymous function', function () {
-        var server = new StreamServer();
+        var server = new Server();
 
         expect(function () { server.provide(function () { }) }).to.throwError();
         expect(function () { server.provide(function foo() {}, function () { }) }).to.throwError();
     });
 
     it('registers methods of objects as JSON-RPC methods', function () {
-        var stream = new MockStream();
-        var server = new StreamServer();
+        var server = new Server();
         var called = {};
 
         server.provide({ foo: function () { called.foo = true; } });
-        server.listen(stream);
-        stream.emit('data', JSON.stringify({
+        server.respond(JSON.stringify({
             jsonrpc: '2.0',
             id: 1,
             method: 'foo'
@@ -67,19 +62,19 @@ describe('StreamServer.provide', function () {
             frob: function () { called.frob = true; }
         });
 
-        stream.emit('data', JSON.stringify({
+        server.respond(JSON.stringify({
             jsonrpc: '2.0',
             id: 2,
             method: 'fiz'
         }));
 
-        stream.emit('data', JSON.stringify({
+        server.respond(JSON.stringify({
             jsonrpc: '2.0',
             id: 3,
             method: 'wiz'
         }));
 
-        stream.emit('data', JSON.stringify({
+        server.respond(JSON.stringify({
             jsonrpc: '2.0',
             id: 4,
             method: 'frob'
@@ -91,22 +86,20 @@ describe('StreamServer.provide', function () {
     });
 
     it('allows functions and objects in the same call', function () {
-        var stream = new MockStream();
-        var server = new StreamServer();
+        var server = new Server();
         var called = {};
 
         server.provide({
             foo: function () { called.foo = true; }
         }, function fiz() { called.fiz = true; });
 
-        server.listen(stream);
-        stream.emit('data', JSON.stringify({
+        server.respond(JSON.stringify({
             jsonrpc: '2.0',
             id: 1,
             method: 'foo'
         }));
 
-        stream.emit('data', JSON.stringify({
+        server.respond(JSON.stringify({
             jsonrpc: '2.0',
             id: 2,
             method: 'fiz'
@@ -117,7 +110,7 @@ describe('StreamServer.provide', function () {
     });
 
     it('throws when passed a duplicate name', function () {
-        var server = new StreamServer();
+        var server = new Server();
         function fn1() {};
         function fn2() {};
 
@@ -143,8 +136,7 @@ describe('StreamServer.provide', function () {
     });
 
     it('registers no methods if any cause it to throw', function () {
-        var stream = new MockStream();
-        var server = new StreamServer();
+        var server = new Server();
         var called = {};
 
         try {
@@ -152,8 +144,7 @@ describe('StreamServer.provide', function () {
                 function () {});
         } catch (e) {}
 
-        server.listen(stream);
-        stream.emit('data', JSON.stringify({
+        server.respond(JSON.stringify({
             jsonrpc: '2.0',
             id: 1,
             method: 'foo'
@@ -163,8 +154,7 @@ describe('StreamServer.provide', function () {
     });
 
     it('marshals named arguments', function () {
-        var stream = new MockStream();
-        var server = new StreamServer();
+        var server = new Server();
         var called = false;
 
         server.provide(function foo(bar, baz) {
@@ -173,9 +163,7 @@ describe('StreamServer.provide', function () {
             called = true;
         });
 
-        server.listen(stream);
-        stream.foobar = true;
-        stream.emit('data', JSON.stringify({
+        server.respond(JSON.stringify({
             jsonrpc: '2.0',
             id: 1,
             method: 'foo',

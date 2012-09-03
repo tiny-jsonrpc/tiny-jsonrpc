@@ -1,7 +1,7 @@
 var Server = require('../lib/tiny-jsonrpc').Server;
 var expect = require('expect.js');
 
-describe('StreamServer.revoke', function () {
+describe('Server.revoke', function () {
     it('unregisters named JSON RPC methods', function () {
         var server = new Server();
         var called = {};

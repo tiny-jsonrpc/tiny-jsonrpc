@@ -1,11 +1,9 @@
-var StreamServer = require('../lib/tiny-jsonrpc').StreamServer;
-var MockStream = require('./util/mock-stream');
+var Server = require('../lib/tiny-jsonrpc').Server;
 var expect = require('expect.js');
 
-describe('StreamServer.provides', function () {
+describe('Server.provides', function () {
     it('returns true if the server provides the passed method', function () {
-        var stream = new MockStream();
-        var server = new StreamServer();
+        var server = new Server();
 
         server.provide(function foo() {});
 
@@ -14,8 +12,7 @@ describe('StreamServer.provides', function () {
 
     it('returns false if the server does not provide the passed method',
         function () {
-            var stream = new MockStream();
-            var server = new StreamServer();
+            var server = new Server();
 
             expect(server.provides('fiz')).to.be(false);
 
@@ -26,8 +23,7 @@ describe('StreamServer.provides', function () {
 
     it('returns all methods the server provides if called without arguments',
         function () {
-            var stream = new MockStream();
-            var server = new StreamServer();
+            var server = new Server();
 
             server.provide(function foo() {},
                 function fiz() {},
