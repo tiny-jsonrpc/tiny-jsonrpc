@@ -64,11 +64,19 @@
 }));
 
 ;(function (root, factory) {
+    var requireBase = '.';
+
     if (typeof exports === 'object') {
         // Node. Does not work with strict CommonJS, but
         // only CommonJS-like enviroments that support module.exports,
         // like Node.
-        module.exports = factory(require('./util'));
+
+        // PhantomJS support
+        requireBase = typeof phantom !== 'undefined' && phantom.requireBase ?
+            phantom.requireBase + '/tiny-jsonrpc/lib/tiny-jsonrpc' :
+            requireBase;
+
+        module.exports = factory(require(requireBase + '/util'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define('tiny-jsonrpc/server',['./util'], factory);
@@ -361,11 +369,20 @@
 }));
 
 ;(function (root, factory) {
+    var requireBase = '.';
+
     if (typeof exports === 'object') {
         // Node. Does not work with strict CommonJS, but
         // only CommonJS-like enviroments that support module.exports,
         // like Node.
-        module.exports = factory(require('./server'), require('./util'));
+
+        // PhantomJS support
+        requireBase = typeof phantom !== 'undefined' && phantom.requireBase ?
+            phantom.requireBase + '/tiny-jsonrpc/lib/tiny-jsonrpc' :
+            requireBase;
+
+        module.exports = factory(require(requireBase + '/server'),
+            require(requireBase + '/util'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define('tiny-jsonrpc/stream-server',['./server', './util'], factory);
@@ -432,16 +449,25 @@
 }));
 
 ;(function (factory) {
+    var requireBase = '.';
     if (typeof exports === 'object') {
         // Node. Does not work with strict CommonJS, but
         // only CommonJS-like enviroments that support module.exports,
         // like Node.
+
+        // PhantomJS support
+        requireBase = typeof phantom !== 'undefined' && phantom.requireBase ?
+            phantom.requireBase + '/tiny-jsonrpc/lib' :
+            requireBase;
+
         module.exports = factory(
-            require('./tiny-jsonrpc/server'),
-            require('./tiny-jsonrpc/stream-server'));
+            require(requireBase + '/tiny-jsonrpc/server'),
+            require(requireBase + '/tiny-jsonrpc/stream-server'));
     } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define('tiny-jsonrpc',['./tiny-jsonrpc/server', './tiny-jsonrpc/stream-server'], factory);
+        define('tiny-jsonrpc',[
+            './tiny-jsonrpc/server', './tiny-jsonrpc/stream-server'
+        ], factory);
     }
 }(function (Server, StreamServer) {
     return {
