@@ -70,7 +70,9 @@ describe('Client.request', function () {
 
         it('request.params is present, but not an object or array',
             function () {
-                var client = new Client();
+                var client = new Client({
+                    server: server
+                });
                 var params = ['', false, true, null, 0, 42];
 
                 for (var i = 0; i < params.length; i++) {
