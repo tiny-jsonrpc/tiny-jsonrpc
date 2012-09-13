@@ -1,6 +1,6 @@
 {
     "name": "tiny-jsonrpc",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "author": "Lon Ingram <lon@waterfallmobile.com>",
     "description": "JavaScript JSON-RPC 2.0 server with no runtime dependencies",
 
