@@ -31,7 +31,7 @@ Then load http://localhost:8080 in your browser.
 The following make parameters are supported (defaults are in parentheses):
 
 * `TEST_REPORTER` the [Mocha reporter](http://visionmedia.github.com/mocha/#reporters) to use (dot)
-* `TEST_PORT` the port to run the fixture web server on (8080)
+* `TEST_PORT` the port to run the browser test web server on (8080)
 * `TEST_TIMEOUT` threshold in ms to timeout a test (4000)
 * `TEST_SLOW` threshold in ms to say a test is slow (2000)
 * `TEST_ARGS` Additional [arguments](http://visionmedia.github.com/mocha/#usage) to pass through to Mocha
