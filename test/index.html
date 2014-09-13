@@ -2,18 +2,18 @@
 <head>
   <meta charset="utf-8">
   <title>Mocha Tests</title>
-  <link rel="stylesheet" href="node_modules/mocha/mocha.css" />
-  <script src="node_modules/expect.js/expect.js"></script>
-  <script src="node_modules/eventemitter2/lib/eventemitter2.js"></script>
-  <script src="node_modules/mocha/mocha.js"></script>
-  <script src="util/sinon-1.4.2.js"></script>
-  <script src="dist/tiny-jsonrpc.js"></script>
+  <link rel="stylesheet" href="/node_modules/mocha/mocha.css" />
+  <script src="/node_modules/expect.js/expect.js"></script>
+  <script src="/node_modules/eventemitter2/lib/eventemitter2.js"></script>
+  <script src="/node_modules/mocha/mocha.js"></script>
+  <script src="/test/util/sinon-1.4.2.js"></script>
+  <script src="/dist/tiny-jsonrpc.js"></script>
   <script>
     (function () {
       var moduleMap = {
         sinon: sinon,
         'expect.js': expect,
-        '../lib/tiny-jsonrpc': tinyJsonRpc,
+        '../lib/tiny-jsonrpc': tinyJsonrpc,
         'events': {
           EventEmitter: EventEmitter2
         }
@@ -30,6 +30,7 @@
   <script src="client.notify.js"></script>
   <script src="stream-client.js"></script>
   <script src="stream-client.request.js"></script>
+  <script src="stream-client.notify.js"></script>
   <script src="server.js"></script>
   <script src="server.provide.js"></script>
   <script src="server.provides.js"></script>
