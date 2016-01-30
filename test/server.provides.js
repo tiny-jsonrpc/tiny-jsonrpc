@@ -1,34 +1,50 @@
-var Server = require('../lib/tiny-jsonrpc').Server;
-var expect = require('expect.js');
+'use strict';
 
-describe('Server.provides', function () {
-    it('returns true if the server provides the passed method', function () {
-        var server = new Server();
+var test = require('tape');
 
-        server.provide(function foo() {});
+var Server = require('../').Server;
 
-        expect(server.provides('foo')).to.be(true);
+test('Server.provides', function (t) {
+  t.test('if passed a method name', function (t) {
+    t.test('returns true if the server provides it', function (t) {
+      var server = new Server();
+
+      server.provide(function foo() {});
+
+      t.ok(server.provides('foo'), 'true if provided');
+
+      t.end();
     });
 
-    it('returns false if the server does not provide the passed method',
-        function () {
-            var server = new Server();
+    t.test('returns false if the server does not provide it', function (t) {
+      var server = new Server();
 
-            expect(server.provides('fiz')).to.be(false);
+      t.notOk(server.provides('fiz'), 'false if no functions provided');
 
-            server.provide(function foo() {});
+      server.provide(function foo() {});
 
-            expect(server.provides('frob')).to.be(false);
-        });
+      t.notOk(server.provides('frob'), 'false if not provided');
 
-    it('returns all methods the server provides if called without arguments',
-        function () {
-            var server = new Server();
+      t.end();
+    });
+  });
 
-            server.provide(function foo() {},
-                function fiz() {},
-                function frob() {});
+  t.test('if not passed a method name, returns all registered methods',
+    function (t) {
+      var server = new Server();
 
-            expect(server.provides()).to.eql(['foo', 'fiz', 'frob']);
-        });
+      server.provide(
+        function foo() {},
+        function fiz() {},
+        function frob() {}
+      );
+
+      t.deepEqual(
+       server.provides(),
+       ['foo', 'fiz', 'frob'],
+       'returns all provided method names as an array'
+      );
+
+      t.end();
+    });
 });

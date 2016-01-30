@@ -1,24 +1,15 @@
-var Server = require('../lib/tiny-jsonrpc').Server;
-var expect = require('expect.js');
+'use strict';
 
-describe('Server instances', function () {
-    it('provide a respond method', function () {
-        var server = new Server();
-        expect(server.respond instanceof Function).to.be(true);
-    });
+var test = require('tape');
+var Server = require('../').Server;
 
-    it('provide a provide method', function () {
-        var server = new Server();
-        expect(server.provide instanceof Function).to.be(true);
-    });
+test('Server instance', function (t) {
+  var server = new Server();
 
-    it('provide a revoke method', function () {
-        var server = new Server();
-        expect(server.revoke instanceof Function).to.be(true);
-    });
+  t.ok(server.respond instanceof Function, 'provides a respond method');
+  t.ok(server.provide instanceof Function, 'provides a provide method');
+  t.ok(server.revoke instanceof Function, 'provides a revoke method');
+  t.ok(server.provides instanceof Function, 'provides a provides method');
 
-    it('provide a provides method', function () {
-        var server = new Server();
-        expect(server.provides instanceof Function).to.be(true);
-    });
+  t.end();
 });

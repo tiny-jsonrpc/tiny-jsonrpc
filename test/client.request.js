@@ -1,183 +1,142 @@
-var Client = require('../lib/tiny-jsonrpc').Client;
-var Server = require('../lib/tiny-jsonrpc').Server;
-var expect = require('expect.js');
+'use strict';
+
+var test = require('tape');
 var sinon = require('sinon');
 
-describe('Client.request', function () {
-    var server = new Server();
+var tinyJsonRpc = require('../');
+var Client = tinyJsonRpc.Client;
+var Server = tinyJsonRpc.Server;
 
-    server.provide(function echo (what) {
-        return what;
+test('Client.request', function (t) {
+  var server = new Server();
+
+  server.provide(function echo (what) {
+    return what;
+  });
+
+  function expectValidRequest(t, request) {
+    t.equal(request.jsonrpc, '2.0', 'version is "2.0"');
+    t.equal(typeof request.id, 'number', '`id` is a number');
+  }
+
+  t.test('throws an error when', function (t) {
+    var client = new Client({
+      server: server
     });
 
-    function expectValidRequest(request) {
-        expect(request.jsonrpc).to.be('2.0');
-        expect(request.id).to.be.a('number');
-    }
+    t.throws(function () {
+      client.request();
+    }, /Method must be a string/, 'config is required');
 
-    describe('throws an error when', function () {
-        it('no method is specified', function () {
-            var client = new Client({
-                server: server
-            });
+    t.throws(function () {
+      client.request({});
+    }, /Method must be a string/, 'config.method is required');
 
-            expect(function () {
-                client.request();
-            }).to.throwError(/Method must be a string/);
-
-            expect(function () {
-                client.request({});
-            }).to.throwError(/Method must be a string/);
+    [null, {}, [], 23, false].forEach(function (arg) {
+      t.throws(function () {
+        client.request({
+          method: arg
         });
-
-        it('method is not a string', function () {
-            var client = new Client({
-                server: server
-            });
-            var methods = [null, {}, [], 23, false];
-
-            for (var i = 0; i < methods.length; i++) {
-                expect(function () {
-                    client.request(methods[i]);
-                }).to.throwError(/Method must be a string/);
-
-                expect(function () {
-                    client.request({
-                        method: methods[i]
-                    });
-                }).to.throwError(/Method must be a string/);
-            }
-        });
-
-        it('request parameters cannot be serialized to JSON', function () {
-            var client = new Client({
-                server: server
-            });
-            var circular = {};
-            circular.link = circular;
-
-            expect(function () {
-                client.request('echo', circular);
-            }).to.throwError(/Could not serialize request to JSON/);
-
-            expect(function () {
-                client.request({
-                    method: 'echo',
-                    params: [ circular ]
-                });
-            }).to.throwError(/Could not serialize request to JSON/);
-        });
-
-        it('request.params is present, but not an object or array',
-            function () {
-                var client = new Client({
-                    server: server
-                });
-                var params = ['', false, true, null, 0, 42];
-
-                for (var i = 0; i < params.length; i++) {
-                    expect(function () {
-                        client.request({
-                            method: 'echo',
-                            params: params[i]
-                        });
-                    }).to.throwError(/Params must be an object or array/);
-                }
-            });
+      }, /Method must be a string/, 'config.method must be a string');
     });
 
-    describe('upon a valid request', function () {
-        beforeEach(function () {
-            sinon.spy(server, 'respond');
+    var circular = {};
+    circular.link = circular;
+
+    t.throws(
+      function () {
+        client.request('echo', circular);
+      },
+      /Could not serialize request to JSON/,
+      'throws if request parameters cannot be serialized'
+    );
+
+    t.throws(
+      function () {
+        client.request({
+          method: 'echo',
+          params: [ circular ]
         });
+      },
+      /Could not serialize request to JSON/,
+      'throws if request parameters cannot be serialized'
+    );
 
-        afterEach(function () {
-            server.respond.restore();
-        });
-
-        it('sends a valid request to the server', function () {
-            var client = new Client({
-                server: server
-            });
-
-            client.request('echo', 'marco');
-
-            sinon.assert.calledOnce(server.respond);
-            expect(server.respond.firstCall.args.length).to.be(1);
-            var request = JSON.parse(server.respond.firstCall.args[0]);
-
-            expectValidRequest(request);
-            expect(request.method).to.be('echo');
-            expect(request.params).to.eql(['marco']);
-
-            server.respond.reset();
-            client.request({
-                method: 'echo',
-                params: ['marco']
-            });
-
-            sinon.assert.calledOnce(server.respond);
-            expect(server.respond.firstCall.args.length).to.be(1);
-            var request = JSON.parse(server.respond.firstCall.args[0]);
-
-            expectValidRequest(request);
-            expect(request.method).to.be('echo');
-            expect(request.params).to.eql(['marco']);
-        });
-
-        it('calls the provided callback with the error', function () {
-            var client = new Client({
-                server: server
-            });
-
-            server.provide(function fail () {
-                throw 'DOH!';
-            });
-            var callback = sinon.spy();
-            client.request('fail', 'marco', callback);
-
-            sinon.assert.calledOnce(callback);
-            expect(callback.firstCall.args.length).to.be(2);
-            expect(callback.firstCall.args[0].message).to.be('DOH!');
-            expect(callback.firstCall.args[1]).to.be(null);
-
-            callback.reset();
-            client.request({
-                method: 'fail',
-                params: ['marco'],
-                callback: callback
-            });
-
-            sinon.assert.calledOnce(callback);
-            expect(callback.firstCall.args.length).to.be(2);
-            expect(callback.firstCall.args[0].message).to.be('DOH!');
-            expect(callback.firstCall.args[1]).to.be(null);
-        });
-
-        it('calls the provided callback with the result', function () {
-            var client = new Client({
-                server: server
-            });
-
-            var callback = sinon.spy();
-            client.request('echo', 'marco', callback);
-
-            sinon.assert.calledOnce(callback);
-            expect(callback.firstCall.args.length).to.be(2);
-            expect(callback.firstCall.args[0]).to.be(null);
-            expect(callback.firstCall.args[1]).to.be('marco');
-
-            callback.reset();
-            client.request({
-                method: 'echo',
-                params: ['marco'],
-                callback: callback
-            });
-
-            sinon.assert.calledOnce(callback);
-            expect(callback.firstCall.args.length).to.be(2);
-            expect(callback.firstCall.args[0]).to.be(null);
-            expect(callback.firstCall.args[1]).to.be('marco');
-        });
+    ['', false, true, null, 0, 42].forEach(function (arg) {
+      t.throws(
+        function () {
+          client.request({
+            method: 'echo',
+            params: arg
+          });
+        },
+        /Params must be an object or array/,
+        'config.params must be an object or array'
+      );
     });
+
+    t.end();
+  });
+
+  t.test('upon a valid notification', function (t) {
+    var client = new Client({
+      server: server
+    });
+    var request;
+
+    test('on failure, calls the passed callback with the error', function (t) {
+      server.provide(function fail () {
+        throw new Error('DOH!');
+      });
+      var callback = sinon.spy();
+      client.request('fail', 'marco', callback);
+
+      sinon.assert.calledOnce(callback);
+      t.equal(callback.firstCall.args.length, 2, 'passed two arguments');
+      t.equal(callback.firstCall.args[0].message, 'DOH!');
+      t.equal(callback.firstCall.args[1], null, 'second argument is null');
+
+      callback.reset();
+      client.request({
+          method: 'fail',
+          params: ['marco'],
+          callback: callback
+      });
+
+      sinon.assert.calledOnce(callback);
+      t.equal(callback.firstCall.args.length, 2, 'passed two arguments');
+      t.equal(callback.firstCall.args[0].message, 'DOH!');
+      t.equal(callback.firstCall.args[1], null, 'second argument is null');
+
+      t.end();
+    });
+
+    t.test('calls the provided callback with the result', function (t) {
+      var callback = sinon.spy();
+      client.request('echo', 'marco', callback);
+
+      sinon.assert.calledOnce(callback);
+      t.equal(callback.firstCall.args.length, 2);
+      t.equal(callback.firstCall.args[0], null);
+      t.equal(callback.firstCall.args[1], 'marco');
+
+      callback.reset();
+      client.request({
+        method: 'echo',
+        params: ['marco'],
+        callback: callback
+      });
+
+      sinon.assert.calledOnce(callback);
+      t.equal(callback.firstCall.args.length, 2);
+      t.equal(callback.firstCall.args[0], null);
+      t.equal(callback.firstCall.args[1], 'marco');
+
+      t.end();
+    });
+
+    t.end();
+  });
+
+  t.end();
 });

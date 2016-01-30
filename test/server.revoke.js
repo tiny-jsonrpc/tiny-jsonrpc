@@ -1,38 +1,46 @@
-var Server = require('../lib/tiny-jsonrpc').Server;
-var expect = require('expect.js');
+'use strict';
 
-describe('Server.revoke', function () {
-    it('unregisters named JSON RPC methods', function () {
-        var server = new Server();
-        var called = {};
+var test = require('tape');
 
-        server.provide(function foo() { called.foo = true; });
-        server.provide(function fiz() { called.fiz = true; });
-        server.revoke('foo');
+var Server = require('../').Server;
 
-        server.respond(JSON.stringify({
-            jsonrpc: '2.0',
-            id: 1,
-            method: 'foo'
-        }));
+test('Server.revoke', function (t) {
+  t.test('unregisters named JSON RPC methods', function (t) {
+    var server = new Server();
+    var called = {};
 
-        expect(called.foo).to.be(void undefined);
-        expect(server.provides('foo')).to.be(false);
-        expect(server.provides('fiz')).to.be(true);
+    server.provide(function foo() { called.foo = true; });
+    server.provide(function fiz() { called.fiz = true; });
+    server.revoke('foo');
+
+    server.respond(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'foo'
+    }));
+
+    t.equal(called.foo, void undefined);
+    t.equal(server.provides('foo'), false);
+    t.equal(server.provides('fiz'), true);
+
+    t.end();
+  });
+
+  t.test('ignores non-existent methods', function (t) {
+    var server = new Server();
+
+    t.doesNotThrow(function () {
+      server.revoke('foo');
     });
 
-    it('ignores non-existent methods', function () {
-        var server = new Server();
+    server.provide(function fiz() { called.fiz = true; });
 
-        expect(function () {
-            server.revoke('foo');
-        }).to.not.throwError();
-
-        server.provide(function fiz() { called.fiz = true; });
-
-        expect(function () {
-            server.revoke('foo', 'foo');
-        }).to.not.throwError();
+    t.doesNotThrow(function () {
+      server.revoke('foo', 'foo');
     });
+
+    t.end();
+  });
+
+  t.end();
 });
-
