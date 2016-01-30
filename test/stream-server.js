@@ -1,34 +1,47 @@
-var StreamServer = require('../lib/tiny-jsonrpc').StreamServer;
-var Server = require('../lib/tiny-jsonrpc').Server;
-var expect = require('expect.js');
+'use strict';
 
-describe('StreamServer instances', function () {
-    it('are instances of Server', function () {
-        expect(new StreamServer()).to.be.a(Server);
-    });
+var test = require('tape');
+var sinon = require('sinon');
 
-    it('inherit a respond method', function () {
-        var server = new StreamServer();
-        expect(server.respond).to.be(Server.prototype.respond);
-    });
+var tinyJsonRpc = require('../');
+var Server = tinyJsonRpc.Server;
+var StreamServer = tinyJsonRpc.StreamServer;
 
-    it('inherit a provide method', function () {
-        var server = new StreamServer();
-        expect(server.provide).to.be(Server.prototype.provide);
-    });
+test('StreamServer instances', function (t) {
+  t.test('are instances of Server', function (t) {
+    t.ok(new StreamServer() instanceof Server);
+    t.end();
+  });
 
-    it('inherit a revoke method', function () {
-        var server = new StreamServer();
-        expect(server.revoke).to.be(Server.prototype.revoke);
-    });
+  t.test('inherit a respond method', function (t) {
+    var server = new StreamServer();
+    t.equal(server.respond, Server.prototype.respond);
+    t.end();
+  });
 
-    it('inherit a provides method', function () {
-        var server = new StreamServer();
-        expect(server.provides).to.be(Server.prototype.provides);
-    });
+  t.test('inherit a provide method', function (t) {
+    var server = new StreamServer();
+    t.equal(server.provide, Server.prototype.provide);
+    t.end();
+  });
 
-    it('provide a listen method', function () {
-        var server = new StreamServer();
-        expect(server.listen).to.be.a('function');
-    });
+  t.test('inherit a revoke method', function (t) {
+    var server = new StreamServer();
+    t.equal(server.revoke, Server.prototype.revoke);
+    t.end();
+  });
+
+  t.test('inherit a provides method', function (t) {
+    var server = new StreamServer();
+    t.equal(server.provides, Server.prototype.provides);
+    t.end();
+  });
+
+  t.test('provide a listen method', function (t) {
+    var server = new StreamServer();
+    t.equal(typeof server.listen, 'function');
+    t.end();
+  });
+
+  t.end();
 });
