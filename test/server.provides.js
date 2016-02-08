@@ -41,7 +41,7 @@ test('Server.provides', function (t) {
 
       t.deepEqual(
        server.provides(),
-       ['foo', 'fiz', 'frob'],
+       ['provides', 'foo', 'fiz', 'frob'],
        'returns all provided method names as an array'
       );
 
