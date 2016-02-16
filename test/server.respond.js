@@ -47,17 +47,23 @@ test('Server.respond', function (t) {
         '{ foo }',
         '{ foo: "bar" }'
       ];
+      var callbackCount = 0;
       var response;
 
       server.provide(function foo() { });
-      for (var i = 0; i < requests.length; i++) {
-        response = JSON.parse(server.respond(requests[i]));
+      requests.forEach(function (request) {
+        server.respond(request, function (error, response) {
+          response = JSON.parse(response);
 
-        expectValidError(t, response, null);
-        t.equal(response.error.code, errors.PARSE_ERROR);
-      }
+          expectValidError(t, response, null);
+          t.equal(response.error.code, errors.PARSE_ERROR);
 
-      t.end();
+          callbackCount++;
+          if (callbackCount === requests.length) {
+            t.end();
+          }
+        });
+      });
     });
 
     t.test('request.jsonrpc !== "2.0"', function (t) {
@@ -69,25 +75,28 @@ test('Server.respond', function (t) {
       var versions = ['2.1', '2', 2.0, {}, [], null, false, true];
 
       server.provide(function foo() { });
-      var response = JSON.parse(server.respond(JSON.stringify(request)));
+      server.respond(JSON.stringify(request), function (error, response) {
+        var callbackCount = 0;
 
-      expectValidError(t, response, request.id);
-      t.equal(response.error.code, errors.INVALID_REQUEST);
-
-      for (var i = 0; i < versions.length; i++) {
-        request.jsonrpc = versions[i];
-        response = JSON.parse(server.respond(JSON.stringify(request)));
-
+        response = JSON.parse(response);
         expectValidError(t, response, request.id);
         t.equal(response.error.code, errors.INVALID_REQUEST);
-      }
 
-      delete request.id;
-      response = JSON.parse(server.respond(JSON.stringify(request)));
-      expectValidError(t, response, null);
-      t.equal(response.error.code, errors.INVALID_REQUEST);
+        versions.forEach(function (version) {
+          request.jsonrpc = version;
+          server.respond(JSON.stringify(request), function (error, response) {
+            response = JSON.parse(response);
 
-      t.end();
+            expectValidError(t, response, request.id);
+            t.equal(response.error.code, errors.INVALID_REQUEST);
+
+            callbackCount++;
+            if (callbackCount === versions.length) {
+              t.end();
+            }
+          });
+        });
+      });
     });
 
     t.test('request.method is missing', function (t) {
@@ -98,17 +107,14 @@ test('Server.respond', function (t) {
       };
 
       server.provide(function foo() { });
-      var response = JSON.parse(server.respond(JSON.stringify(request)));
+      server.respond(JSON.stringify(request), function (error, response) {
+        response = JSON.parse(response);
 
-      expectValidError(t, response, request.id);
-      t.equal(response.error.code, errors.INVALID_REQUEST);
+        expectValidError(t, response, request.id);
+        t.equal(response.error.code, errors.INVALID_REQUEST);
 
-      delete request.id;
-      response = JSON.parse(server.respond(JSON.stringify(request)));
-      expectValidError(t, response, null);
-      t.equal(response.error.code, errors.INVALID_REQUEST);
-
-      t.end();
+        t.end();
+      });
     });
 
     t.test('request.method is not a string', function (t) {
@@ -118,23 +124,24 @@ test('Server.respond', function (t) {
         id: 1,
       };
       var methods = [null, {}, [], 23, false];
+      var callbackCount = 0;
       var response;
 
       server.provide(function foo() { });
-      for (var i = 0; i < methods.length; i++) {
-        request.method = methods[i];
-        response = JSON.parse(server.respond(JSON.stringify(request)));
+      methods.forEach(function (method) {
+        request.method = method;
+        server.respond(JSON.stringify(request), function (error, response) {
+          response = JSON.parse(response);
 
-        expectValidError(t, response, request.id);
-        t.equal(response.error.code, errors.INVALID_REQUEST);
-      }
+          expectValidError(t, response, request.id);
+          t.equal(response.error.code, errors.INVALID_REQUEST);
 
-      delete request.id;
-      response = JSON.parse(server.respond(JSON.stringify(request)));
-      expectValidError(t, response, null);
-      t.equal(response.error.code, errors.INVALID_REQUEST);
-
-      t.end();
+          callbackCount++;
+          if (callbackCount === methods.length) {
+            t.end();
+          }
+        });
+      });
     });
 
     t.test('request.method is not provided by the server', function (t) {
@@ -147,17 +154,14 @@ test('Server.respond', function (t) {
       var response;
 
       server.provide(function foo() { });
-      var response = JSON.parse(server.respond(JSON.stringify(request)));
+      server.respond(JSON.stringify(request), function (error, response) {
+        response = JSON.parse(response);
 
-      expectValidError(t, response, request.id);
-      t.equal(response.error.code, errors.METHOD_NOT_FOUND);
+        expectValidError(t, response, request.id);
+        t.equal(response.error.code, errors.METHOD_NOT_FOUND);
 
-      delete request.id;
-      response = server.respond(JSON.stringify(request));
-      t.ok(response instanceof Error)
-      t.equal(response.code, errors.METHOD_NOT_FOUND);
-
-      t.end();
+        t.end();
+      });
     });
 
     t.test('request.id is present, but not a string, number, or null',
@@ -168,19 +172,24 @@ test('Server.respond', function (t) {
           id: 1,
         };
         var ids = [{}, [], false];
+        var callbackCount = 0;
         var response;
 
         server.provide(function foo() { });
-        for (var i = 0; i < ids.length; i++) {
-          request.id = ids[i];
-          response =
-            JSON.parse(server.respond(JSON.stringify(request)));
+        ids.forEach(function (id) {
+          request.id = id;
+          server.respond(JSON.stringify(request), function (error, response) {
+            response = JSON.parse(response);
 
-          expectValidError(t, response, null);
-          t.equal(response.error.code, errors.INVALID_REQUEST);
-        }
+            expectValidError(t, response, null);
+            t.equal(response.error.code, errors.INVALID_REQUEST);
 
-        t.end();
+            callbackCount++;
+            if (callbackCount === ids.length) {
+              t.end();
+            }
+          });
+        });
       });
 
       t.test('request.params is present, but not an object or array',
@@ -190,25 +199,25 @@ test('Server.respond', function (t) {
             jsonrpc: '2.0',
             id: 1,
           };
-          var params = ['', false, true, null, 0, 42];
+          var paramses = ['', false, true, null, 0, 42];
+          var callbackCount = 0;
           var response;
 
           server.provide(function foo() { });
-          for (var i = 0; i < params.length; i++) {
-            request.params = params[i];
-            response =
-              JSON.parse(server.respond(JSON.stringify(request)));
+          paramses.forEach(function (params) {
+            request.params = params;
+            server.respond(JSON.stringify(request), function (error, response) {
+              response = JSON.parse(response);
 
-            expectValidError(t, response, request.id);
-            t.equal(response.error.code, errors.INVALID_REQUEST);
-          }
+              expectValidError(t, response, request.id);
+              t.equal(response.error.code, errors.INVALID_REQUEST);
 
-          delete request.id;
-          response = JSON.parse(server.respond(JSON.stringify(request)));
-          expectValidError(t, response, null);
-          t.equal(response.error.code, errors.INVALID_REQUEST);
-
-          t.end();
+              callbackCount++;
+              if (callbackCount === paramses.length) {
+                t.end();
+              }
+            });
+          });
         });
 
       t.end();
@@ -227,6 +236,214 @@ test('Server.respond', function (t) {
         server.provide(function foo () { spy(); });
         server.respond(JSON.stringify(request));
         sinon.assert.calledOnce(spy);
+
+        t.end();
+      });
+
+      t.test('calls the method in a context that provides an `async` method',
+        function (t) {
+          var server = new Server();
+          var request = {
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'foo'
+          };
+          var spy = sinon.spy();
+
+          server.provide(function foo () {
+            t.equal(typeof this.async, 'function', 'this.async is a function');
+          });
+          server.respond(JSON.stringify(request), function (error, response) {
+            error = error = response.error;
+            if (error) {
+              throw new Error(error.message);
+            }
+            t.end();
+          });
+        });
+
+      t.test('`async` method', function (t) {
+        t.test('returns a callback', function (t) {
+          var server = new Server();
+          var request = {
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'foo'
+          };
+          var spy = sinon.spy();
+
+          server.provide(function foo () {
+            var callback = this.async();
+            t.equal(
+              typeof callback, 'function', 'this.async returns a function');
+            t.end();
+          });
+
+          server.respond(JSON.stringify(request));
+        });
+
+        t.test('if called', function (t) {
+          t.test(
+            '`respond` waits for the returned callback to be invoked',
+            function (t) {
+              var server = new Server();
+              var request = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'foo'
+              };
+              var spy = sinon.spy();
+
+              server.provide(function foo () {
+                var callback = this.async();
+                setTimeout(callback, 0);
+              });
+              server.respond(
+                JSON.stringify(request),
+                function (error, response) {
+                  t.end();
+                });
+            });
+
+          t.test(
+            '`respond` passes thru errors thrown during method invocation',
+            function (t) {
+              var server = new Server();
+              var request = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'foo'
+              };
+              var expected = 'doh!';
+              var spy = sinon.spy();
+
+              server.provide(function foo () {
+                var callback = this.async();
+                throw new Error(expected);
+              });
+              server.respond(
+                JSON.stringify(request),
+                function (error, response) {
+                  response = JSON.parse(response);
+
+                  t.equal(response.error.message, expected);
+                  t.end();
+                });
+            });
+
+          t.test(
+            '`respond` passes thru errors passed to the callback',
+            function (t) {
+              var server = new Server();
+              var request = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'foo'
+              };
+              var expected = 'doh!';
+              var spy = sinon.spy();
+
+              server.provide(function foo () {
+                var callback = this.async();
+
+                setTimeout(function () {
+                  callback(new Error(expected));
+                }, 0);
+              });
+              server.respond(
+                JSON.stringify(request),
+                function (error, response) {
+                  response = JSON.parse(response);
+
+                  t.equal(response.error.message, expected);
+                  t.end();
+                });
+            });
+
+          t.test(
+            '`respond` passes thru results from the callback',
+            function (t) {
+              var server = new Server();
+              var request = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'foo'
+              };
+              var expected = 'bar';
+              var spy = sinon.spy();
+
+              server.provide(function foo () {
+                var callback = this.async();
+                setTimeout(function () {
+                  callback(null, expected);
+                }, 0);
+              });
+              server.respond(
+                JSON.stringify(request),
+                function (error, response) {
+                  response = JSON.parse(response);
+
+                  t.equal(response.result, expected);
+                  t.end();
+                });
+            });
+
+          t.end();
+        });
+
+        t.test('if not called', function (t) {
+          t.test(
+            'invokes `respond` callback with the returned result synchronously',
+            function (t) {
+              var server = new Server();
+              var request = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'foo'
+              };
+              var expected = 'bar';
+              var actual;
+              var spy = sinon.spy();
+
+              server.provide(function foo () {
+                return expected;
+              });
+              server.respond(
+                JSON.stringify(request),
+                function (error, response) {
+                  actual = JSON.parse(response).result;
+                });
+
+              t.equal(actual, expected);
+              t.end();
+            });
+
+          t.test(
+            '`respond` passes thru errors thrown during method invocation',
+            function (t) {
+              var server = new Server();
+              var request = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'foo'
+              };
+              var expected = 'doh!';
+              var actual;
+              var spy = sinon.spy();
+
+              server.provide(function foo () {
+                throw new Error(expected);
+              });
+              server.respond(
+                JSON.stringify(request),
+                function (error, response) {
+                  actual = JSON.parse(response).error.message;
+                });
+
+              t.equal(actual, expected);
+              t.end();
+            });
+        });
 
         t.end();
       });
@@ -298,21 +515,27 @@ test('Server.respond', function (t) {
         var results = [
           undefined, null, false, true, 0, 42, [1, 2, 3], { foo: 'bar' }
         ];
-        var response, result;
+        var callbackCount = 0;
+        var response, currentResult;
 
         server.provide(function foo () {
-          return result;
+          return currentResult;
         });
 
-        for (var i = 0; i < results.length; i++) {
-          result = results[i];
-          response = JSON.parse(server.respond(JSON.stringify(request)));
+        results.forEach(function (result) {
+          currentResult = result;
+          server.respond(JSON.stringify(request), function (error, response) {
+            response = JSON.parse(response);
 
-          expectValidResult(t, response, request.id);
-          t.deepEqual(response.result, result);
-        }
+            expectValidResult(t, response, request.id);
+            t.deepEqual(response.result, result);
 
-        t.end();
+            callbackCount++;
+            if (callbackCount === results.length) {
+              t.end();
+            }
+          });
+        });
       });
 
       t.test('returns null when passed a notification', function (t) {
@@ -324,20 +547,26 @@ test('Server.respond', function (t) {
         var results = [
           undefined, null, false, true, 0, 42, [1, 2, 3], { foo: 'bar' }
         ];
-        var response, result;
+        var callbackCount = 0;
+        var response, currentResult;
 
         server.provide(function foo () {
-          return result;
+          return currentResult;
         });
 
-        for (var i = 0; i < results.length; i++) {
-          result = results[i];
-          response = JSON.parse(server.respond(JSON.stringify(request)));
+        results.forEach(function (result) {
+          currentResult = result;
+          server.respond(JSON.stringify(request), function (error, response) {
+            response = JSON.parse(response);
 
-          t.equal(response, null);
-        }
+            t.equal(response, null);
 
-        t.end();
+            callbackCount++;
+            if (callbackCount === results.length) {
+              t.end();
+            }
+          });
+        });
       });
 
       t.test(
@@ -354,11 +583,10 @@ test('Server.respond', function (t) {
             throw message;
           });
 
-          var response = server.respond(JSON.stringify(request));
-
-          // FIXME: there are no assertions
-
-          t.end();
+          server.respond(JSON.stringify(request), function (error, response) {
+            // FIXME: there are no assertions
+            t.end();
+          });
         });
 
       t.test('returns an INTERNAL_ERROR if the method throws a string',
@@ -375,20 +603,15 @@ test('Server.respond', function (t) {
             throw message;
           });
 
-          var response =
-            JSON.parse(server.respond(JSON.stringify(request)));
+          server.respond(JSON.stringify(request), function (error, response) {
+            response = JSON.parse(response);
 
-          expectValidError(t, response, request.id);
-          t.equal(response.error.code, errors.INTERNAL_ERROR);
-          t.equal(response.error.message, message);
+            expectValidError(t, response, request.id);
+            t.equal(response.error.code, errors.INTERNAL_ERROR);
+            t.equal(response.error.message, message);
 
-          delete request.id;
-          response = server.respond(JSON.stringify(request));
-          t.ok(response instanceof Error);
-          t.equal(response.code, errors.INTERNAL_ERROR);
-          t.equal(response.message, message);
-
-          t.end();
+            t.end();
+          });
         });
 
       t.test(
@@ -406,19 +629,15 @@ test('Server.respond', function (t) {
             throw new Error(message);
           });
 
-          var response = JSON.parse(server.respond(JSON.stringify(request)));
+          server.respond(JSON.stringify(request), function (error, response) {
+            response = JSON.parse(response);
 
-          expectValidError(t, response, request.id);
-          t.equal(response.error.code, errors.INTERNAL_ERROR);
-          t.equal(response.error.message, message);
+            expectValidError(t, response, request.id);
+            t.equal(response.error.code, errors.INTERNAL_ERROR);
+            t.equal(response.error.message, message);
 
-          delete request.id;
-          response = server.respond(JSON.stringify(request));
-          t.ok(response instanceof Error);
-          t.equal(response.code, errors.INTERNAL_ERROR);
-          t.equal(response.message, message);
-
-          t.end();
+            t.end();
+          });
         });
 
       t.test(
@@ -440,19 +659,14 @@ test('Server.respond', function (t) {
             throw e;
           });
 
-          var response = JSON.parse(server.respond(JSON.stringify(request)));
+          server.respond(JSON.stringify(request), function (error, response) {
+            response = JSON.parse(response);
 
-          expectValidError(t, response, request.id);
-          t.equal(response.error.code, code);
-          t.equal(response.error.message, message);
+            expectValidError(t, response, request.id);
+            t.equal(response.error.code, code);
 
-          delete request.id;
-          response = server.respond(JSON.stringify(request));
-          t.ok(response instanceof Error);
-          t.equal(response.code, code);
-          t.equal(response.message, message);
-
-          t.end();
+            t.end();
+          });
         });
 
       t.test('returns an error with correct data if the method throws an ' +
@@ -473,19 +687,14 @@ test('Server.respond', function (t) {
             throw e;
           });
 
-          var response = JSON.parse(server.respond(JSON.stringify(request)));
+          server.respond(JSON.stringify(request), function (error, response) {
+            response = JSON.parse(response);
 
-          expectValidError(t, response, request.id);
-          t.deepEqual(response.error.data, data);
-          t.equal(response.error.message, message);
+            expectValidError(t, response, request.id);
+            t.same(response.error.data, data);
 
-          delete request.id;
-          response = server.respond(JSON.stringify(request));
-          t.ok(response instanceof Error);
-          t.deepEqual(response.data, data);
-          t.equal(response.message, message);
-
-          t.end();
+            t.end();
+          });
         });
 
       t.end();
@@ -497,12 +706,14 @@ test('Server.respond', function (t) {
         var request = [];
 
         server.provide(function foo() { });
-        var response = JSON.parse(server.respond(JSON.stringify(request)));
+        server.respond(JSON.stringify(request), function (error, response) {
+          response = JSON.parse(response);
 
-        expectValidError(t, response, null);
-        t.equal(response.error.code, errors.INVALID_REQUEST);
+          expectValidError(t, response, null);
+          t.equal(response.error.code, errors.INVALID_REQUEST);
 
-        t.end();
+          t.end();
+        });
       });
 
       t.test('returns an array of responses', function (t) {
@@ -554,68 +765,72 @@ test('Server.respond', function (t) {
             return null;
           }
         });
-        var response = JSON.parse(server.respond(JSON.stringify(request)));
 
-        // invalid requests
-        expectValidError(t, response[0], null);
-        t.equal(response[0].error.code, errors.INVALID_REQUEST);
-        expectValidError(t, response[1], null);
-        t.equal(response[0].error.code, errors.INVALID_REQUEST);
+        server.respond(JSON.stringify(request), function (error, response) {
+          response = JSON.parse(response);
 
-        // bad version
-        expectValidError(t, response[2], 1);
-        t.equal(response[2].error.code, errors.INVALID_REQUEST);
+          // invalid requests
+          expectValidError(t, response[0], null);
+          t.equal(response[0].error.code, errors.INVALID_REQUEST);
+          expectValidError(t, response[1], null);
+          t.equal(response[0].error.code, errors.INVALID_REQUEST);
 
-        // missing method
-        expectValidError(t, response[3], 2);
-        t.equal(response[3].error.code, errors.INVALID_REQUEST);
+          // bad version
+          expectValidError(t, response[2], 1);
+          t.equal(response[2].error.code, errors.INVALID_REQUEST);
 
-        // invalid method
-        expectValidError(t, response[4], 3);
-        t.equal(response[4].error.code, errors.INVALID_REQUEST);
+          // missing method
+          expectValidError(t, response[3], 2);
+          t.equal(response[3].error.code, errors.INVALID_REQUEST);
 
-        // unprovided method
-        expectValidError(t, response[5], 4);
-        t.equal(response[5].error.code, errors.METHOD_NOT_FOUND);
+          // invalid method
+          expectValidError(t, response[4], 3);
+          t.equal(response[4].error.code, errors.INVALID_REQUEST);
 
-        // invalid id
-        expectValidError(t, response[6], null);
-        t.equal(response[6].error.code, errors.INVALID_REQUEST);
+          // unprovided method
+          expectValidError(t, response[5], 4);
+          t.equal(response[5].error.code, errors.METHOD_NOT_FOUND);
 
-        // invalid params
-        expectValidError(t, response[7], 5);
-        t.equal(response[7].error.code, errors.INVALID_REQUEST);
+          // invalid id
+          expectValidError(t, response[6], null);
+          t.equal(response[6].error.code, errors.INVALID_REQUEST);
 
-        // no params
-        expectValidResult(t, response[8], 6);
-        t.equal(response[8].result, null);
+          // invalid params
+          expectValidError(t, response[7], 5);
+          t.equal(response[7].error.code, errors.INVALID_REQUEST);
 
-        // positional params
-        expectValidResult(t, response[9], 7);
-        t.equal(response[9].result, 3);
+          // no params
+          expectValidResult(t, response[8], 6);
+          t.equal(response[8].result, null);
 
-        // named params
-        expectValidResult(t, response[10], 8);
-        t.equal(response[10].result, 3);
+          // positional params
+          expectValidResult(t, response[9], 7);
+          t.equal(response[9].result, 3);
 
-        // throws a string
-        expectValidError(t, response[11], 9);
-        t.equal(response[11].error.code, errors.INTERNAL_ERROR);
-        t.equal(response[11].error.message, 'OHNOES');
+          // named params
+          expectValidResult(t, response[10], 8);
+          t.equal(response[10].result, 3);
 
-        // throws an Error with code
-        expectValidError(t, response[12], 10);
-        t.equal(response[12].error.code, 123);
-        t.equal(response[12].error.message, 'OHNOES');
+          // throws a string
+          expectValidError(t, response[11], 9);
+          t.equal(response[11].error.code, errors.INTERNAL_ERROR);
+          t.equal(response[11].error.message, 'OHNOES');
 
-        // throws an Error with data
-        expectValidError(t, response[13], 11);
-        t.equal(response[13].error.code, errors.INTERNAL_ERROR);
-        t.equal(response[13].error.message, 'OHNOES');
-        t.deepEqual(response[13].error.data, { foo: 'bar' });
+          // throws an Error with code
+          expectValidError(t, response[12], 10);
+          t.equal(response[12].error.code, 123);
+          t.equal(response[12].error.message, 'OHNOES');
 
-        t.end();
+          // throws an Error with data
+          expectValidError(t, response[13], 11);
+          t.equal(response[13].error.code, errors.INTERNAL_ERROR);
+          t.equal(response[13].error.message, 'OHNOES');
+          t.deepEqual(response[13].error.data, { foo: 'bar' });
+
+          t.end();
+        });
       });
+
     t.end();
   });
 });
