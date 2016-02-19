@@ -276,17 +276,173 @@ test('Server.respond', function (t) {
             var callback = this.async();
             t.equal(
               typeof callback, 'function', 'this.async returns a function');
-          });
-
-          server.respond(JSON.stringify(request), function (error, response) {
-            response = JSON.parse(response);
-
-            if (response.error) {
-              throw new Error(response.error.message);
-            }
-
             t.end();
           });
+
+          server.respond(JSON.stringify(request));
+        });
+
+        t.test('if called', function (t) {
+          t.test(
+            '`respond` waits for the returned callback to be invoked',
+            function (t) {
+              var server = new Server();
+              var request = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'foo'
+              };
+              var spy = sinon.spy();
+
+              server.provide(function foo () {
+                var callback = this.async();
+                setTimeout(callback, 0);
+              });
+              server.respond(
+                JSON.stringify(request),
+                function (error, response) {
+                  t.end();
+                });
+            });
+
+          t.test(
+            '`respond` passes thru errors thrown during method invocation',
+            function (t) {
+              var server = new Server();
+              var request = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'foo'
+              };
+              var expected = 'doh!';
+              var spy = sinon.spy();
+
+              server.provide(function foo () {
+                var callback = this.async();
+                throw new Error(expected);
+              });
+              server.respond(
+                JSON.stringify(request),
+                function (error, response) {
+                  response = JSON.parse(response);
+
+                  t.equal(response.error.message, expected);
+                  t.end();
+                });
+            });
+
+          t.test(
+            '`respond` passes thru errors passed to the callback',
+            function (t) {
+              var server = new Server();
+              var request = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'foo'
+              };
+              var expected = 'doh!';
+              var spy = sinon.spy();
+
+              server.provide(function foo () {
+                var callback = this.async();
+
+                setTimeout(function () {
+                  callback(new Error(expected));
+                }, 0);
+              });
+              server.respond(
+                JSON.stringify(request),
+                function (error, response) {
+                  response = JSON.parse(response);
+
+                  t.equal(response.error.message, expected);
+                  t.end();
+                });
+            });
+
+          t.test(
+            '`respond` passes thru results from the callback',
+            function (t) {
+              var server = new Server();
+              var request = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'foo'
+              };
+              var expected = 'bar';
+              var spy = sinon.spy();
+
+              server.provide(function foo () {
+                var callback = this.async();
+                setTimeout(function () {
+                  callback(null, expected);
+                }, 0);
+              });
+              server.respond(
+                JSON.stringify(request),
+                function (error, response) {
+                  response = JSON.parse(response);
+
+                  t.equal(response.result, expected);
+                  t.end();
+                });
+            });
+
+          t.end();
+        });
+
+        t.test('if not called', function (t) {
+          t.test(
+            'invokes `respond` callback with the returned result synchronously',
+            function (t) {
+              var server = new Server();
+              var request = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'foo'
+              };
+              var expected = 'bar';
+              var actual;
+              var spy = sinon.spy();
+
+              server.provide(function foo () {
+                return expected;
+              });
+              server.respond(
+                JSON.stringify(request),
+                function (error, response) {
+                  actual = JSON.parse(response).result;
+                });
+
+              t.equal(actual, expected);
+              t.end();
+            });
+
+          t.test(
+            '`respond` passes thru errors thrown during method invocation',
+            function (t) {
+              var server = new Server();
+              var request = {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'foo'
+              };
+              var expected = 'doh!';
+              var actual;
+              var spy = sinon.spy();
+
+              server.provide(function foo () {
+                throw new Error(expected);
+              });
+              server.respond(
+                JSON.stringify(request),
+                function (error, response) {
+                  actual = JSON.parse(response).error.message;
+                });
+
+              t.equal(actual, expected);
+              t.end();
+            });
         });
 
         t.end();
