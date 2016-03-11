@@ -6,7 +6,9 @@
   "repository": "tiny-jsonrpc/tiny-jsonrpc",
   "main": "./lib/tiny-jsonrpc.js",
   "scripts": {
-    "test": "./node_modules/.bin/karma start --single-run"
+    "test-browser": "./node_modules/.bin/karma start --single-run",
+    "test-node": "node test/index.js",
+    "test": "npm run test-node && npm run test-browser"
   },
   "devDependencies": {
     "expose-loader": "^0.7.1",
