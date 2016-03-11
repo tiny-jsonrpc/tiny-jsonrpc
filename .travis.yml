@@ -1,3 +1,8 @@
 language: node_js
 node_js:
   - 0.12
+addons:
+  sauce_connect:
+    username: "tiny-jsonrpc"
+    access_key:
+      secure: "AKUBLWM0GoPbQpi2kJhflZIERDr9oPIUGR5Mqh82cdQ3i9vwiOjIixyYScUbly2gXjPO4EcMzy1irEMlLUl7Xr+p3xZjV76xAGJaTQrzdXxgdUjTxK3Y2lxkroTcMWzd93gqBBLNtVTOgHj3gkHQqi8D8lbNXphww5EmjJCnkXg="
